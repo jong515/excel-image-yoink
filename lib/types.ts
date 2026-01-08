@@ -18,6 +18,7 @@ export interface ImagePosition {
   column: string;
   row: number;
   imageIndex: number;
+  totalImagesInCell: number;
 }
 
 export interface ExtractionResult {

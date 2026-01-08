@@ -14,15 +14,24 @@ export function sanitizeSheetName(sheetName: string): string {
 
 /**
  * Generates a filename based on image position and index
- * Format: {SheetName}_{Column}_{Row}_{ImageIndex}.{extension}
- * Example: Sheet1_A_5_1.png
+ * Format: {SheetName}_{Column}_{Row}.{extension} (single image)
+ *         {SheetName}_{Column}_{Row}_{ImageIndex}.{extension} (multiple images)
+ * Examples:
+ *   - TTA_Sci_J_10.png (single image)
+ *   - TTA_Sci_J_10_1.png, TTA_Sci_J_10_2.png (multiple images)
  */
 export function generateImageName(
   position: ImagePosition,
   extension: string
 ): string {
   const sanitizedSheet = sanitizeSheetName(position.sheetName);
-  return `${sanitizedSheet}_${position.column}_${position.row}_${position.imageIndex}.${extension}`;
+
+  // Only include image index if there are multiple images in the cell
+  if (position.totalImagesInCell > 1) {
+    return `${sanitizedSheet}_${position.column}_${position.row}_${position.imageIndex}.${extension}`;
+  } else {
+    return `${sanitizedSheet}_${position.column}_${position.row}.${extension}`;
+  }
 }
 
 /**

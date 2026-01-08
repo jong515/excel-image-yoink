@@ -34,11 +34,27 @@ export async function extractImagesFromExcel(
           onProgress(sheetName, (sheetsProcessed / totalSheets) * 100);
         }
 
-        // Track images per cell to handle multiple images in same location
-        const cellImageCount = new Map<string, number>();
-
         // Extract images from the worksheet
         const worksheetImages = worksheet.getImages();
+
+        // First pass: Count images per cell to determine if suffix is needed
+        const cellImageCount = new Map<string, number>();
+
+        for (const imageData of worksheetImages) {
+          if ('range' in imageData) {
+            const range = imageData.range;
+            const topLeft = range.tl;
+            const column = columnNumberToLetter(topLeft.col);
+            const row = topLeft.row + 1;
+            const cellKey = `${column}_${row}`;
+            cellImageCount.set(cellKey, (cellImageCount.get(cellKey) || 0) + 1);
+          } else {
+            cellImageCount.set('unknown', (cellImageCount.get('unknown') || 0) + 1);
+          }
+        }
+
+        // Second pass: Extract images with proper naming
+        const currentCellIndex = new Map<string, number>();
 
         for (const imageData of worksheetImages) {
           try {
@@ -67,25 +83,29 @@ export async function extractImagesFromExcel(
 
               // Track multiple images in same cell
               const cellKey = `${column}_${row}`;
-              const imageIndex = (cellImageCount.get(cellKey) || 0) + 1;
-              cellImageCount.set(cellKey, imageIndex);
+              const imageIndex = (currentCellIndex.get(cellKey) || 0) + 1;
+              currentCellIndex.set(cellKey, imageIndex);
+              const totalImagesInCell = cellImageCount.get(cellKey) || 1;
 
               position = {
                 sheetName,
                 column,
                 row,
                 imageIndex,
+                totalImagesInCell,
               };
             } else {
               // Image doesn't have a specific position, use default
-              const imageIndex = (cellImageCount.get('unknown') || 0) + 1;
-              cellImageCount.set('unknown', imageIndex);
+              const imageIndex = (currentCellIndex.get('unknown') || 0) + 1;
+              currentCellIndex.set('unknown', imageIndex);
+              const totalImagesInCell = cellImageCount.get('unknown') || 1;
 
               position = {
                 sheetName,
                 column: 'Unknown',
                 row: 0,
                 imageIndex,
+                totalImagesInCell,
               };
             }
 
